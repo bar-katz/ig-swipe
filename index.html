@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f4f5">
+<meta name="robots" content="noindex">
+<title>Follow swipe</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{display:flex;flex-direction:column;height:100dvh;padding:12px 16px calc(16px + env(safe-area-inset-bottom));background:#f4f4f5;color:#18181b;font:16px/1.4 system-ui,sans-serif;overscroll-behavior:none;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+nav{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:#e4e4e7}
+.tab{min-height:44px;border-radius:9px;font-size:14px;font-weight:600;color:#52525b;white-space:nowrap}
+.tab.on{background:#fff;color:#18181b}
+#bar{height:4px;margin-top:12px;border-radius:2px;background:#e4e4e7;overflow:hidden}
+#bar i{display:block;height:100%;background:#18181b}
+#stat{margin:8px 0 12px;font-size:14px;color:#52525b}
+main{flex:1;min-height:0;display:flex;flex-direction:column}
+#stack{position:relative;flex:1;min-height:0}
+.card{position:absolute;inset:0;display:flex;flex-direction:column;padding:24px;border-radius:20px;background:#fff;box-shadow:0 1px 2px #0000000f,0 8px 24px #00000014;touch-action:none;user-select:none;-webkit-user-select:none;overflow:hidden}
+.card.back{transform:scale(.96) translateY(10px);box-shadow:0 1px 2px #0000000f}
+.card.back>*{visibility:hidden}
+.tier{flex:1;min-width:0;margin:0;font-size:14px;font-weight:600;color:#52525b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card h1{margin:auto 0 8px;font-size:clamp(26px,8.5vw,36px);line-height:1.15;overflow-wrap:anywhere}
+.group{margin:0 0 20px;color:#52525b}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;margin:0}
+dt{color:#71717a}dd{margin:0;font-weight:500}
+.tip{margin:16px 0 0;font-size:14px;color:#52525b}
+.top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.peek{flex:none;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:#f4f4f5;color:#18181b}
+.peek svg{width:24px;height:24px}
+.gone{flex:none;min-height:44px;padding:0 14px;border-radius:22px;background:#f4f4f5;font-size:14px;font-weight:600;color:#52525b}
+.card>:last-child{margin-bottom:auto}
+.stamp{position:absolute;top:76px;padding:4px 12px;border:3px solid;border-radius:8px;font-weight:800;letter-spacing:.06em;opacity:0;background:#fff}
+.stamp.d{right:20px;color:#d92d20;transform:rotate(8deg)}
+.stamp.k{left:20px;color:#079455;transform:rotate(-8deg)}
+.stamp.t{left:50%;color:#b54708;transform:translateX(-50%)}
+#actions{display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:8px;margin-top:16px}
+#actions button{min-height:60px;border-radius:14px;font-weight:700;background:#fff;box-shadow:0 1px 2px #0000000f}
+#drop{color:#d92d20}#top-btn{color:#b54708}#keep{color:#079455}
+#undo{padding:0 16px;font-weight:500!important;color:#52525b}
+#undo:disabled{opacity:.4}
+#end{margin:auto;text-align:center}
+#end h1{margin:0 0 8px;font-size:26px}
+#end p{margin:0;color:#52525b}
+#top,#queue{overflow-y:auto}
+#top>p,#queue>p{margin:0 0 12px;font-size:14px;color:#52525b}
+.rows{list-style:none;margin:0;padding:0;border-radius:14px;background:#fff}
+.rows li{display:flex;align-items:center;border-bottom:1px solid #f4f4f5}
+.rows li:last-child{border:0}
+.rows a{flex:1;min-width:0;padding:14px 16px;color:#0b57d0;font-weight:500;text-decoration:none;overflow-wrap:anywhere}
+.rows li.done a{color:#a1a1aa}
+#rows li.done a{text-decoration:line-through}
+.rows button{min-height:44px;padding:0 14px;font-size:14px;color:#52525b}
+.rows li.none{display:block;padding:32px 16px;text-align:center;color:#52525b}
+.wide{width:100%;min-height:48px;margin-top:12px;border-radius:12px;background:#e4e4e7;font-weight:600}
+#meta{margin:16px 0 0;font-size:13px;color:#71717a}
+#setup{overflow-y:auto}
+#setup h1{margin:8px 0;font-size:26px}
+#setup p,#setup li{color:#52525b}
+#setup ol{margin:16px 0;padding-left:20px}
+#setup li{margin-bottom:8px}
+@media (max-height:600px){
+body{padding:8px 12px}
+.tab{min-height:36px}
+#bar{margin-top:8px}
+#stat{margin:4px 0 8px;font-size:13px}
+.card{padding:12px 16px}
+.top{margin-bottom:0}
+.card h1{font-size:clamp(22px,6.5vw,28px);margin-bottom:2px}
+.group{margin-bottom:8px;font-size:14px}
+dl{grid-template-columns:auto auto auto auto;justify-content:start;font-size:14px}
+.tip{display:none}
+.stamp{top:60px}
+#actions{margin-top:8px}
+#actions button{min-height:48px}
+}
+</style>
+</head>
+<body>
+<header>
+  <nav>
+    <button class="tab on" id="t-swipe">Swipe</button>
+    <button class="tab" id="t-top">Top (<span id="tn">0</span>)</button>
+    <button class="tab" id="t-queue">Unfollow (<span id="qn">0</span>)</button>
+  </nav>
+  <div id="bar"><i></i></div>
+  <p id="stat"></p>
+</header>
+<main id="setup" hidden>
+  <h1>Follow swipe</h1>
+  <p>Sort the Instagram accounts you follow that don't follow you back: swipe to keep or drop, then unfollow them in Instagram.</p>
+  <ol>
+    <li>In Instagram, go to Accounts Center → Your information and permissions → Download your information → Some of your information → Followers and following. Pick format JSON and date range All time.</li>
+    <li>When the zip arrives, load it here. It's read on this phone and nothing is uploaded.</li>
+  </ol>
+  <button class="wide pick-zip">Load Instagram export (.zip)</button>
+  <button class="wide pick-csv">Import progress (.csv)</button>
+</main>
+<main id="swipe">
+  <div id="stack"></div>
+  <div id="actions">
+    <button id="undo">Undo</button>
+    <button id="drop">Drop</button>
+    <button id="top-btn">Top</button>
+    <button id="keep">Keep</button>
+  </div>
+</main>
+<main id="top" hidden>
+  <p>Kept to browse later. Tap a name to open it, and it turns grey once you have. Use Drop if it isn't worth keeping.</p>
+  <ul class="rows" id="topRows"></ul>
+</main>
+<main id="queue" hidden>
+  <p>Tap a name, unfollow in Instagram, then come back. Go in batches, and stop for a while if Instagram blocks you.</p>
+  <ul class="rows" id="rows"></ul>
+  <button class="wide" id="csv">Download spreadsheet (CSV)</button>
+  <button class="wide pick-zip">Load a newer export (.zip)</button>
+  <button class="wide pick-csv">Import progress (.csv)</button>
+  <p id="meta"></p>
+</main>
+<input type="file" id="zip" accept=".zip,application/zip" hidden>
+<input type="file" id="csvIn" accept=".csv,text/csv" hidden>
+<script>
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const $ = id => document.getElementById(id);
+const load = (key, empty) => JSON.parse(localStorage.getItem(key) || empty);
+const F = load('follows', 'null');
+const G = load('groups', '{}');
+const S = load('swipe', '{"d":{},"log":[]}');
+const save = () => localStorage.setItem('swipe', JSON.stringify(S));
+const ALL = F ? F.list.filter(x => !x[0].startsWith('__deleted__')) : [];
+const rank = x => G[x[0]] ? G[x[0]][2] : 1e6;
+const DECK = ALL.filter(x => !x[2] || S.d[x[0]]).sort((a, b) => rank(a) - rank(b) || a[1].localeCompare(b[1]));
+if (F) {
+  const following = new Set(ALL.map(x => x[0]));
+  for (const [n, x] of Object.entries(S.d)) if (x.v === 'drop' && !following.has(n)) x.done = 1;
+  save();
+}
+const url = n => `https://www.instagram.com/${n}/`;
+const month = d => `${MONTHS[+d.slice(5) - 1]} ${d.slice(0, 4)}`;
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+let busy = false;
+
+function count(v) { return DECK.filter(x => S.d[x[0]] && S.d[x[0]].v === v).length; }
+function pending() { return Object.values(S.d).filter(x => x.v === 'drop' && !x.done).length; }
+
+function stats() {
+  const n = DECK.filter(x => S.d[x[0]]).length;
+  $('bar').firstElementChild.style.width = `${DECK.length ? n / DECK.length * 100 : 100}%`;
+  $('stat').textContent = `${n} of ${DECK.length} sorted · ${count('drop')} drop · ${count('keep')} keep · ${count('top')} top · ${count('gone')} not found`;
+  $('tn').textContent = count('top');
+  $('qn').textContent = pending();
+  $('undo').disabled = !S.log.length;
+}
+
+function card([name, date, followsYou]) {
+  const c = el('article', 'card');
+  const a = el('a', 'peek');
+  a.href = url(name); a.target = '_blank'; a.title = 'See profile'; a.setAttribute('aria-label', 'See profile');
+  a.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+  const top = el('div', 'top');
+  top.append(el('p', 'tier', G[name] ? G[name][0] : followsYou ? 'Follows you back' : "Doesn't follow you back"), el('button', 'gone', 'Not found'), a);
+  c.append(el('span', 'stamp k', 'KEEP'), el('span', 'stamp d', 'DROP'), el('span', 'stamp t', 'TOP'), top, el('h1', '', name));
+  if (G[name] && G[name][1]) c.append(el('p', 'group', G[name][1]));
+  const dl = el('dl');
+  dl.append(el('dt', '', 'Followed'), el('dd', '', month(date)), el('dt', '', 'Follows you'), el('dd', '', followsYou ? 'Yes' : 'No'));
+  c.append(dl);
+  return c;
+}
+
+function render() {
+  const left = DECK.filter(x => !S.d[x[0]]);
+  const stack = $('stack');
+  stack.replaceChildren();
+  stats();
+  $('drop').disabled = $('top-btn').disabled = $('keep').disabled = !left.length;
+  if (!left.length) {
+    const end = el('div'); end.id = 'end';
+    end.append(el('h1', '', 'All sorted'), el('p', '', `${pending()} left to unfollow · ${count('top')} to browse`));
+    stack.append(end);
+    return;
+  }
+  if (left[1]) { const b = card(left[1]); b.classList.add('back'); stack.append(b); }
+  const top = card(left[0]);
+  stack.append(top);
+  drag(top, left[0][0]);
+}
+
+function decide(c, name, v) {
+  if (busy) return;
+  busy = true;
+  S.d[name] = { v, done: 0 };
+  S.log.push(name);
+  save();
+  c.style.transition = 'transform .18s ease-in, opacity .18s';
+  if (v === 'gone') c.style.opacity = 0;
+  c.style.transform = v === 'gone' ? 'scale(.85)' : v === 'top' ? 'translateY(-130vh)' : `translateX(${v === 'keep' ? 130 : -130}vw) rotate(${v === 'keep' ? 18 : -18}deg)`;
+  setTimeout(() => { busy = false; render(); }, 180);
+}
+
+function drag(c, name) {
+  let start = null, startY = 0, dx = 0, dy = 0;
+  const stamps = (x, y) => {
+    const up = -y > Math.abs(x);
+    c.querySelector('.k').style.opacity = !up && x > 0 ? Math.min(x / 90, 1) : 0;
+    c.querySelector('.d').style.opacity = !up && x < 0 ? Math.min(-x / 90, 1) : 0;
+    c.querySelector('.t').style.opacity = up ? Math.min(-y / 90, 1) : 0;
+  };
+  c.onpointerdown = e => {
+    if (e.target.closest('a,button') || busy) return;
+    start = e.clientX; startY = e.clientY; dx = dy = 0;
+    c.setPointerCapture(e.pointerId);
+    c.style.transition = 'none';
+  };
+  c.onpointermove = e => {
+    if (start === null) return;
+    dx = e.clientX - start;
+    dy = Math.min(e.clientY - startY, 0);
+    c.style.transform = `translate(${dx}px,${dy}px) rotate(${dx / 22}deg)`;
+    stamps(dx, dy);
+  };
+  c.onpointerup = c.onpointercancel = () => {
+    if (start === null) return;
+    start = null;
+    if (-dy > Math.abs(dx) && -dy > Math.min(c.offsetHeight * .25, 110)) return decide(c, name, 'top');
+    if (Math.abs(dx) > c.offsetWidth * .25) return decide(c, name, dx > 0 ? 'keep' : 'drop');
+    c.style.transition = 'transform .18s';
+    c.style.transform = '';
+    stamps(0, 0);
+  };
+  $('drop').onclick = () => { stamps(-90, 0); decide(c, name, 'drop'); };
+  $('top-btn').onclick = () => { stamps(0, -90); decide(c, name, 'top'); };
+  $('keep').onclick = () => { stamps(90, 0); decide(c, name, 'keep'); };
+  c.querySelector('.gone').onclick = () => decide(c, name, 'gone');
+}
+
+function renderList(id, v, empty, actions) {
+  const names = S.log.filter(n => S.d[n] && S.d[n].v === v).sort((a, b) => S.d[a].done - S.d[b].done);
+  const rows = $(id);
+  rows.replaceChildren();
+  if (!names.length) { rows.append(el('li', 'none', empty)); return; }
+  for (const n of names) {
+    const li = el('li', S.d[n].done ? 'done' : '');
+    const a = el('a', '', n);
+    a.href = url(n); a.target = '_blank';
+    const buttons = () => actions(n).map(([label, fn]) => {
+      const b = el('button', '', label);
+      b.onclick = () => { fn(); save(); stats(); renderQueue(); renderTop(); };
+      return b;
+    });
+    a.onclick = () => { S.d[n].done = 1; save(); stats(); li.className = 'done'; li.querySelectorAll('button').forEach(b => b.remove()); li.append(...buttons()); };
+    li.append(a, ...buttons());
+    rows.append(li);
+  }
+}
+const renderQueue = () => renderList('rows', 'drop', 'Swipe left on an account to add it here.', n =>
+  S.d[n].done ? [['Reopen', () => { S.d[n].done = 0; }]] : [['Keep', () => { S.d[n].v = 'keep'; }]]);
+const renderTop = () => renderList('topRows', 'top', 'Swipe up on an account to save it here.', n => [
+  ['Keep', () => { S.d[n].v = 'keep'; }],
+  ['Drop', () => { S.d[n].v = 'drop'; S.d[n].done = 0; }]]);
+
+function tab(name) {
+  for (const t of ['swipe', 'top', 'queue']) {
+    $(t).hidden = t !== name;
+    $('t-' + t).classList.toggle('on', t === name);
+  }
+  ({ swipe: render, top: renderTop, queue: renderQueue })[name]();
+}
+
+// Instagram's export is a zip; read the central directory and inflate only the follower files.
+async function readZip(file, want) {
+  const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer), out = {};
+  let e = buf.length - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('That file is not a zip. Pick the Instagram export zip.');
+  for (let i = 0, p = dv.getUint32(e + 16, true); i < dv.getUint16(e + 10, true); i++) {
+    const method = dv.getUint16(p + 10, true), size = dv.getUint32(p + 20, true), nameLen = dv.getUint16(p + 28, true), local = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(buf.subarray(p + 46, p + 46 + nameLen));
+    p += 46 + nameLen + dv.getUint16(p + 30, true) + dv.getUint16(p + 32, true);
+    if (!want(name)) continue;
+    const start = local + 30 + dv.getUint16(local + 26, true) + dv.getUint16(local + 28, true);
+    let data = buf.subarray(start, start + size);
+    if (method === 8) data = new Uint8Array(await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    out[name] = JSON.parse(new TextDecoder().decode(data));
+  }
+  return out;
+}
+
+// following.json names accounts in "title", followers_N.json in "value"; the href is the fallback.
+function usernames(obj) {
+  const items = Array.isArray(obj) ? obj : Object.values(obj).find(Array.isArray) || [], out = {};
+  for (const it of items) for (const s of it.string_list_data || [])
+    out[(s.value || it.title || (s.href || '').replace(/.*instagram\.com\/(_u\/)?/, '').replace(/\/$/, '')).toLowerCase()] = s.timestamp || 0;
+  return out;
+}
+
+async function loadExport(file) {
+  const files = await readZip(file, n => /followers_and_following\/(following|followers_\d+)\.json$/.test(n));
+  const following = {}, followers = {};
+  for (const [n, obj] of Object.entries(files)) Object.assign(n.endsWith('/following.json') ? following : followers, usernames(obj));
+  if (!Object.keys(following).length) throw new Error('No following list in that zip. Download it again in JSON format with Followers and following ticked.');
+  const ym = t => { const d = new Date(t * 1000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+  const at = (file.name.match(/\d{4}-\d{2}-\d{2}/) || [new Date(file.lastModified).toISOString().slice(0, 10)])[0];
+  localStorage.setItem('follows', JSON.stringify({ at, list: Object.entries(following).map(([n, t]) => [n, ym(t), followers[n] ? 1 : 0]) }));
+}
+
+// Reads this page's own CSV: groups come back as labels and order, decisions as swipes.
+async function importCsv(file) {
+  const lines = (await file.text()).split(/\r?\n/);
+  if (!lines[0].startsWith('username,tier,group')) throw new Error('That is not a spreadsheet from this page.');
+  lines.slice(1).forEach((line, i) => {
+    const [n, tier, group, , , v, unfollowed, browsed] = [...line.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+    if (!n) return;
+    if (tier) G[n] = [tier, group, i];
+    if (v) { S.d[n] = { v, done: unfollowed === 'yes' || browsed === 'yes' ? 1 : 0 }; if (!S.log.includes(n)) S.log.push(n); }
+  });
+  localStorage.setItem('groups', JSON.stringify(G));
+  save();
+}
+
+for (const [input, fn] of [['zip', loadExport], ['csvIn', importCsv]]) {
+  $(input).onchange = async () => {
+    try { await fn($(input).files[0]); location.reload(); }
+    catch (err) { alert(err.message); }
+    $(input).value = '';
+  };
+}
+document.querySelectorAll('.pick-zip').forEach(b => b.onclick = () => $('zip').click());
+document.querySelectorAll('.pick-csv').forEach(b => b.onclick = () => $('csvIn').click());
+$('t-swipe').onclick = () => tab('swipe');
+$('t-top').onclick = () => tab('top');
+$('t-queue').onclick = () => tab('queue');
+$('undo').onclick = () => {
+  if (busy || !S.log.length) return;
+  delete S.d[S.log.pop()];
+  save(); render();
+};
+$('csv').onclick = () => {
+  const lines = ['username,tier,group,followed,follows_you,decision,unfollowed,browsed'];
+  for (const [n, d, followsYou] of DECK) {
+    const x = S.d[n], g = G[n] || [];
+    lines.push([n, g[0] || '', g[1] || '', d, followsYou ? 'yes' : 'no', x ? x.v : '', x && x.v === 'drop' && x.done ? 'yes' : '', x && x.v === 'top' && x.done ? 'yes' : ''].map(f => `"${f}"`).join(','));
+  }
+  const a = el('a');
+  a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }));
+  a.download = 'instagram_follows.csv';
+  a.click();
+};
+if (F) {
+  $('meta').textContent = `Export from ${F.at} · ${ALL.length} following`;
+  render();
+} else {
+  document.querySelector('header').hidden = $('swipe').hidden = true;
+  $('setup').hidden = false;
+}
+</script>
+</body>
+</html>
